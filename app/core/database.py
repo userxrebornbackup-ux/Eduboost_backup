@@ -127,6 +127,25 @@ if slow_threshold > 0:
                     param_count,
                     statement,
                 )
+                # Record Prometheus metrics for slow queries (keep labels low-cardinality)
+                try:
+                    from app.core.metrics import db_slow_queries_total, db_slow_query_duration_seconds
+
+                    qtype = "UNKNOWN"
+                    if statement:
+                        try:
+                            qtype = statement.strip().split()[0].upper()
+                        except Exception:
+                            qtype = "UNKNOWN"
+                    # Normalize to a small known set to avoid cardinality explosion
+                    if qtype not in {"SELECT", "INSERT", "UPDATE", "DELETE", "BEGIN", "COMMIT", "ROLLBACK"}:
+                        qtype = "OTHER"
+
+                    db_slow_queries_total.labels(query_type=qtype).inc()
+                    db_slow_query_duration_seconds.labels(query_type=qtype).observe(duration)
+                except Exception:
+                    # Metrics must not break application flow
+                    pass
 
     # Register listeners on the sync engine wrapped by the async engine
     event.listen(engine.sync_engine, "before_cursor_execute", _before_cursor_execute)

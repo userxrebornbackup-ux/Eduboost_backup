@@ -135,6 +135,23 @@ redis_connected_clients = Gauge(
 )
 
 
+# ── Slow-query telemetry (low-cardinality labels only) ----------------------
+db_slow_queries_total = Counter(
+    "eduboost_db_slow_queries_total",
+    "Count of database queries exceeding configured slow threshold",
+    ["query_type"],
+    registry=REGISTRY,
+)
+
+db_slow_query_duration_seconds = Histogram(
+    "eduboost_db_slow_query_duration_seconds",
+    "Duration of slow database queries",
+    ["query_type"],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0],
+    registry=REGISTRY,
+)
+
+
 
 # ── Readiness / Release Operations ──────────────────────────────────────────
 readiness_component_status = Gauge(
